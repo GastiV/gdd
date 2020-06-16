@@ -1,3 +1,5 @@
+-- noinspection SqlNoDataSourceInspectionForFile
+
 USE [GD1C2020]
 GO
 --CREACION DE SCHEMA
@@ -8,7 +10,7 @@ CREATE PROCEDURE LA_EMPRESA.SP_MIGRATION_SCHEMA
 AS
 	
 	--CREACION DE TABLAS
-	PRINT 'Comienza la creación de tablas.'
+	PRINT 'Comienza la creaciï¿½n de tablas.'
 
 	CREATE TABLE LA_EMPRESA.empresa (
 		id INTEGER IDENTITY(0,1) PRIMARY KEY,
