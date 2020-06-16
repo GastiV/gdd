@@ -33,7 +33,7 @@ AS
 	--TODO: Actualizar id cliente en el DER
 	--Dos clientes con el mismo DNI
 	--https://groups.google.com/forum/#!topic/gestiondedatos/L9DFvV4DgmI thread sobre el asunto
-	--SELECT * FROM gd_esquema.Maestra WHERE CLIENTE_DNI = '1353465' 
+	--SELECT * FROM gd_esquema.Maestra WHERE CLIENTE_DNI = '1353465'
 	--todos tienen el mail repetido
 
 
@@ -116,7 +116,7 @@ AS
 	PRINT 'Creada tabla factura.'
 
 	CREATE TABLE LA_EMPRESA.avion (
-		identificador INT NOT NULL PRIMARY KEY,
+		identificador VARCHAR(50) NOT NULL PRIMARY KEY,
 		id_empresa INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.empresa(id),
 		modelo VARCHAR(50)
 	);
@@ -126,15 +126,19 @@ AS
 	--rename en DER "id_butaca" a "id"
 	--relacion de butaca a pasaje es de uno a muchos opcional (CORREGIR)
 	CREATE TABLE LA_EMPRESA.butaca (
-		id INT IDENTITY(0,1) PRIMARY KEY, 
-		id_avion INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.avion(identificador),
+		id INT IDENTITY(0,1) PRIMARY KEY,
+		id_avion VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.avion(identificador),
 		numero INT NOT NULL,
 		tipo VARCHAR(50)
 	);
 	PRINT 'Creada tabla butaca.'
 
+
+	-- El campo id sirve para identificar a la ruta aerea direccionada
+	-- El campo codigo sirve para identificar a la ruta aerea sin importar direccionamiento
 	CREATE TABLE LA_EMPRESA.ruta_aerea (
-		codigo INT NOT NULL PRIMARY KEY,
+		id INT IDENTITY(0,1) PRIMARY KEY,
+		codigo INT NOT NULL,
 		id_ciudad_orig INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.ciudad(codigo),
 		id_ciudad_dest INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.ciudad(codigo)
 	);
@@ -143,8 +147,8 @@ AS
 	--corregir DER "fecha_saluda"
 	CREATE TABLE LA_EMPRESA.vuelo (
 		codigo INT NOT NULL PRIMARY KEY,
-		id_avion INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.avion(identificador),
-		id_ruta_aerea INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.ruta_aerea(codigo),
+		id_avion VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.avion(identificador),
+		id_ruta_aerea INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.ruta_aerea(id),
 		fecha_salida DATETIME,
 		fecha_llegada DATETIME
 	);
@@ -218,19 +222,43 @@ PRINT 'Tipo de habitaciones migradas'
 
 INSERT INTO LA_EMPRESA.hotel (id_empresa, calle, cantidad_estrellas, nro_calle)
 SELECT DISTINCT E.id, M.HOTEL_CALLE, M.HOTEL_CANTIDAD_ESTRELLAS, M.HOTEL_NRO_CALLE
-FROM LA_EMPRESA.empresa E 
+FROM LA_EMPRESA.empresa E
 JOIN gd_esquema.Maestra M ON M.EMPRESA_RAZON_SOCIAL = E.razon_social
 WHERE M.HOTEL_CALLE IS NOT NULL ORDER BY E.id
 
 PRINT 'Hoteles migrados'
 
 INSERT INTO LA_EMPRESA.habitacion (id_hotel, id_tipo_habitacion, numero, piso, precio, frente, costo)
-SELECT DISTINCT H.id_hotel ,TA.codigo, HABITACION_NUMERO, HABITACION_PISO,HABITACION_PRECIO, CAST(HABITACION_FRENTE AS varchar) ,HABITACION_COSTO  
+SELECT DISTINCT H.id_hotel ,TA.codigo, HABITACION_NUMERO, HABITACION_PISO,HABITACION_PRECIO, CAST(HABITACION_FRENTE AS varchar) ,HABITACION_COSTO
 FROM LA_EMPRESA.hotel H
 JOIN gd_esquema.Maestra M ON H.calle = M.HOTEL_CALLE
-JOIN LA_EMPRESA.tipo_habitacion TA ON M.TIPO_HABITACION_DESC = TA.descripcion 
+JOIN LA_EMPRESA.tipo_habitacion TA ON M.TIPO_HABITACION_DESC = TA.descripcion
 WHERE HABITACION_COSTO IS NOT NULL;
 
 PRINT 'Tipo de habitaciones migradas'
 
-SELECT RUTA_AEREA_CIU_DEST, RUTA_AEREA_CIU_ORIG FROM gd_esquema.Maestra WHERE RUTA_AEREA_CIU_DEST is not null order by RUTA_AEREA_CIU_DEST, RUTA_AEREA_CIU_ORIG;
+INSERT INTO LA_EMPRESA.avion (identificador, id_empresa, modelo)
+SELECT DISTINCT m.AVION_IDENTIFICADOR, e.id, m.AVION_MODELO
+FROM gd_esquema.Maestra as m
+         JOIN LA_EMPRESA.empresa as e ON m.EMPRESA_RAZON_SOCIAL = e.razon_social
+WHERE m.AVION_IDENTIFICADOR IS NOT NULL
+
+
+INSERT INTO LA_EMPRESA.ruta_aerea (codigo, id_ciudad_orig, id_ciudad_dest)
+SELECT DISTINCT m.RUTA_AEREA_CODIGO, c1.codigo, c2.codigo
+FROM gd_esquema.Maestra as m
+         JOIN LA_EMPRESA.ciudad as c1 ON m.RUTA_AEREA_CIU_ORIG = c1.nombre
+         JOIN LA_EMPRESA.ciudad as c2 ON m.RUTA_AEREA_CIU_DEST = c2.nombre
+
+INSERT INTO LA_EMPRESA.vuelo (codigo, id_avion, id_ruta_aerea, fecha_salida, fecha_llegada)
+SELECT DISTINCT m.VUELO_CODIGO, m.AVION_IDENTIFICADOR, ra.id, m.VUELO_FECHA_SALUDA, m.VUELO_FECHA_LLEGADA
+FROM LA_EMPRESA.ruta_aerea as ra
+         JOIN LA_EMPRESA.ciudad as c1 ON ra.id_ciudad_orig = c1.codigo
+         JOIN LA_EMPRESA.ciudad as c2 ON ra.id_ciudad_dest = c2.codigo
+         JOIN gd_esquema.Maestra as m ON (m.RUTA_AEREA_CODIGO = ra.codigo AND m.RUTA_AEREA_CIU_ORIG = c1.nombre AND m.RUTA_AEREA_CIU_DEST = c2.nombre)
+
+
+INSERT INTO LA_EMPRESA.butaca (id_avion, numero, tipo)
+SELECT DISTINCT m.AVION_IDENTIFICADOR, m.BUTACA_NUMERO, m.BUTACA_TIPO
+FROM gd_esquema.Maestra as m
+where m.AVION_IDENTIFICADOR is not null AND m.BUTACA_NUMERO is not null
