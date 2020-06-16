@@ -218,7 +218,6 @@ FROM gd_esquema.Maestra
 WHERE TIPO_HABITACION_CODIGO is not null or TIPO_HABITACION_DESC is not null;
 PRINT 'Tipo de habitaciones migradas'
 
--- MIGRACION HOTEL
 
 INSERT INTO LA_EMPRESA.hotel (id_empresa, calle, cantidad_estrellas, nro_calle)
 SELECT DISTINCT E.id, M.HOTEL_CALLE, M.HOTEL_CANTIDAD_ESTRELLAS, M.HOTEL_NRO_CALLE
@@ -243,12 +242,15 @@ FROM gd_esquema.Maestra as m
          JOIN LA_EMPRESA.empresa as e ON m.EMPRESA_RAZON_SOCIAL = e.razon_social
 WHERE m.AVION_IDENTIFICADOR IS NOT NULL
 
+PRINT 'Aviones migrados.'
 
 INSERT INTO LA_EMPRESA.ruta_aerea (codigo, id_ciudad_orig, id_ciudad_dest)
 SELECT DISTINCT m.RUTA_AEREA_CODIGO, c1.codigo, c2.codigo
 FROM gd_esquema.Maestra as m
          JOIN LA_EMPRESA.ciudad as c1 ON m.RUTA_AEREA_CIU_ORIG = c1.nombre
          JOIN LA_EMPRESA.ciudad as c2 ON m.RUTA_AEREA_CIU_DEST = c2.nombre
+
+PRINT 'Rutas aereas migradas.'
 
 INSERT INTO LA_EMPRESA.vuelo (codigo, id_avion, id_ruta_aerea, fecha_salida, fecha_llegada)
 SELECT DISTINCT m.VUELO_CODIGO, m.AVION_IDENTIFICADOR, ra.id, m.VUELO_FECHA_SALUDA, m.VUELO_FECHA_LLEGADA
@@ -257,18 +259,21 @@ FROM LA_EMPRESA.ruta_aerea as ra
          JOIN LA_EMPRESA.ciudad as c2 ON ra.id_ciudad_dest = c2.codigo
          JOIN gd_esquema.Maestra as m ON (m.RUTA_AEREA_CODIGO = ra.codigo AND m.RUTA_AEREA_CIU_ORIG = c1.nombre AND m.RUTA_AEREA_CIU_DEST = c2.nombre)
 
+PRINT 'Vuelos migrados.'
 
 INSERT INTO LA_EMPRESA.butaca (id_avion, numero, tipo)
 SELECT DISTINCT m.AVION_IDENTIFICADOR, m.BUTACA_NUMERO, m.BUTACA_TIPO
 FROM gd_esquema.Maestra as m
 where m.AVION_IDENTIFICADOR is not null AND m.BUTACA_NUMERO is not null
 
+PRINT 'Butacas migradas.'
 
 INSERT INTO LA_EMPRESA.compra (numero, id_empresa, fecha)
 SELECT DISTINCT m.COMPRA_NUMERO, e.id, m.COMPRA_FECHA
 FROM gd_esquema.Maestra as m
 JOIN LA_EMPRESA.empresa as e ON m.EMPRESA_RAZON_SOCIAL = e.razon_social
 
+PRINT 'Compras migradas.'
 
 INSERT INTO LA_EMPRESA.servicio (codigo, id_compra)
 SELECT DISTINCT m.ESTADIA_CODIGO, m.COMPRA_NUMERO 
@@ -278,3 +283,16 @@ UNION
 SELECT DISTINCT m.PASAJE_CODIGO, m.COMPRA_NUMERO
 FROM gd_esquema.Maestra as m
 WHERE m.PASAJE_CODIGO IS NOT NULL
+
+PRINT 'Servicios migrados.'
+
+INSERT INTO LA_EMPRESA.factura (id_servicio, id_cliente, id_sucursal, nro)
+SELECT DISTINCT M.PASAJE_CODIGO, CLI.id, SU.id, M.FACTURA_NRO FROM LA_EMPRESA.cliente CLI 
+JOIN gd_esquema.Maestra M ON M.CLIENTE_DNI = CLI.dni AND M.CLIENTE_NOMBRE = CLI.nombre AND M.CLIENTE_APELLIDO = CLI.apellido
+JOIN LA_EMPRESA.sucursal SU ON SU.dir = M.SUCURSAL_DIR WHERE M.PASAJE_CODIGO IS NOT NULL
+UNION
+SELECT DISTINCT M.ESTADIA_CODIGO, CLI.id, SU.id, M.FACTURA_NRO FROM LA_EMPRESA.cliente CLI
+JOIN gd_esquema.Maestra M ON M.CLIENTE_DNI = CLI.dni AND M.CLIENTE_NOMBRE = CLI.nombre AND M.CLIENTE_APELLIDO = CLI.apellido
+JOIN LA_EMPRESA.sucursal SU ON SU.dir = M.SUCURSAL_DIR WHERE M.ESTADIA_CODIGO IS NOT NULL
+
+PRINT 'Facturas migradas.'
