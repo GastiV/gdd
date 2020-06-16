@@ -1,7 +1,7 @@
 USE [GD1C2020]
 GO
 --CREACION DE SCHEMA
-CREATE SCHEMA [LA_EMPRESA] --AUTHORIZATION [gd] --tengo que crear un usuario? 
+CREATE SCHEMA [LA_EMPRESA]
 GO
 
 CREATE PROCEDURE LA_EMPRESA.SP_MIGRATION_SCHEMA
@@ -25,7 +25,7 @@ AS
 	PRINT 'Creada tabla sucursal.'
 
 	CREATE TABLE LA_EMPRESA.ciudad (
-		codigo INT IDENTITY(0,1) PRIMARY KEY, --Por alguna razon arranca en 0??
+		codigo INT IDENTITY(0,1) PRIMARY KEY,
 		nombre VARCHAR(50) NOT NULL
 	);
 	PRINT 'Creada tabla ciudad.'
@@ -109,6 +109,7 @@ AS
 		id_servicio INTEGER NOT NULL,
 		id_cliente INTEGER NOT NULL,
 		id_sucursal INTEGER NOT NULL,
+		fecha DATETIME,
 		FOREIGN KEY (id_servicio) REFERENCES LA_EMPRESA.servicio (codigo),
 		FOREIGN KEY (id_cliente) REFERENCES LA_EMPRESA.cliente (id),
 		FOREIGN KEY (id_sucursal) REFERENCES LA_EMPRESA.sucursal (id)
@@ -316,12 +317,12 @@ JOIN gd_esquema.Maestra as m ON (m.EMPRESA_RAZON_SOCIAL = e.razon_social AND m.H
 
 PRINT 'Estadias migradas.'
 
-INSERT INTO LA_EMPRESA.factura (id_servicio, id_cliente, id_sucursal, nro)
-SELECT DISTINCT M.PASAJE_CODIGO, CLI.id, SU.id, M.FACTURA_NRO FROM LA_EMPRESA.cliente CLI 
+INSERT INTO LA_EMPRESA.factura (id_servicio, id_cliente, id_sucursal, nro, fecha)
+SELECT DISTINCT M.PASAJE_CODIGO, CLI.id, SU.id, M.FACTURA_NRO, M.FACTURA_FECHA FROM LA_EMPRESA.cliente CLI 
 JOIN gd_esquema.Maestra M ON M.CLIENTE_DNI = CLI.dni AND M.CLIENTE_NOMBRE = CLI.nombre AND M.CLIENTE_APELLIDO = CLI.apellido
 JOIN LA_EMPRESA.sucursal SU ON SU.dir = M.SUCURSAL_DIR WHERE M.PASAJE_CODIGO IS NOT NULL
 UNION
-SELECT DISTINCT M.ESTADIA_CODIGO, CLI.id, SU.id, M.FACTURA_NRO FROM LA_EMPRESA.cliente CLI
+SELECT DISTINCT M.ESTADIA_CODIGO, CLI.id, SU.id, M.FACTURA_NRO, M.FACTURA_FECHA FROM LA_EMPRESA.cliente CLI
 JOIN gd_esquema.Maestra M ON M.CLIENTE_DNI = CLI.dni AND M.CLIENTE_NOMBRE = CLI.nombre AND M.CLIENTE_APELLIDO = CLI.apellido
 JOIN LA_EMPRESA.sucursal SU ON SU.dir = M.SUCURSAL_DIR WHERE M.ESTADIA_CODIGO IS NOT NULL
 
