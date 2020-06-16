@@ -17,7 +17,7 @@ AS
 	PRINT 'Creada tabla empresa.'
 
 	CREATE TABLE LA_EMPRESA.sucursal(
-		id INTEGER IDENTITY(1,1) PRIMARY KEY,
+		id INTEGER IDENTITY(0,1) PRIMARY KEY,
 		dir VARCHAR(50) NOT NULL,
 		mail VARCHAR(50) NOT NULL,
 		telefono INTEGER NOT NULL
@@ -39,7 +39,7 @@ AS
 
 
 	CREATE TABLE LA_EMPRESA.cliente (
-		id INTEGER IDENTITY(0,1) PRIMARY KEY ,
+		id INTEGER IDENTITY(0,1) PRIMARY KEY,
 		dni INTEGER NOT NULL,
 		apellido VARCHAR(50) NOT NULL,
 		nombre VARCHAR(50) NOT NULL,
@@ -71,7 +71,7 @@ AS
 	PRINT 'Creada tabla servicio.'
 
 	CREATE TABLE LA_EMPRESA.hotel(
-		id_hotel INT PRIMARY KEY,
+		id_hotel INT IDENTITY(0,1) PRIMARY KEY,
 		id_empresa int,
 		calle VARCHAR(50),
 		nro_calle int,
@@ -80,26 +80,26 @@ AS
 	);
 	PRINT 'Creada tabla hotel.'
 
-	CREATE TABLE LA_EMPRESA.habitacion_hotel(
-		id_habitacion INTEGER PRIMARY KEY,
+	CREATE TABLE LA_EMPRESA.habitacion(
+		id_habitacion INTEGER IDENTITY(0,1) PRIMARY KEY,
 		id_hotel INTEGER NOT NULL,
 		id_tipo_habitacion INTEGER NOT NULL,
 		numero INTEGER NOT NULL,
 		piso INTEGER NOT NULL,
-		frente tinyint NOT NULL,
-		cost INTEGER NOT NULL,
+		frente VARCHAR(5) NOT NULL,
+		costo INTEGER NOT NULL,
 		precio INTEGER NOT NULL,
 		FOREIGN KEY (id_hotel) REFERENCES LA_EMPRESA.hotel (id_hotel),
 		FOREIGN KEY (id_tipo_habitacion) REFERENCES LA_EMPRESA.tipo_habitacion (codigo)
 	);
-	PRINT 'Creada tabla habitacion_hotel.'
+	PRINT 'Creada tabla habitacion.'
 
 	CREATE TABLE LA_EMPRESA.estadia(
 		codigo INTEGER PRIMARY KEY,
 		id_habitacion INTEGER NOT NULL,
 		fecha_ini DATETIME NOT NULL,
 		cantidad_noches INTEGER NOT NULL,
-		FOREIGN KEY (id_habitacion) REFERENCES LA_EMPRESA.habitacion_hotel (id_habitacion)
+		FOREIGN KEY (id_habitacion) REFERENCES LA_EMPRESA.habitacion (id_habitacion)
 	);
 
 	PRINT 'Creada tabla estadia.'
@@ -110,7 +110,7 @@ AS
 		id_cliente INTEGER NOT NULL,
 		id_sucursal INTEGER NOT NULL,
 		FOREIGN KEY (id_servicio) REFERENCES LA_EMPRESA.servicio (codigo),
-		FOREIGN KEY (id_cliente ) REFERENCES LA_EMPRESA.cliente (dni),
+		FOREIGN KEY (id_cliente) REFERENCES LA_EMPRESA.cliente (id),
 		FOREIGN KEY (id_sucursal) REFERENCES LA_EMPRESA.sucursal (id)
 	);
 	PRINT 'Creada tabla factura.'
@@ -206,12 +206,31 @@ INSERT INTO LA_EMPRESA.cliente (nombre, apellido, dni, email, telefono, fecha_na
 SELECT distinct m.CLIENTE_NOMBRE, m.CLIENTE_APELLIDO, CAST(m.CLIENTE_DNI as INTEGER) as DNI, m.CLIENTE_MAIL, CAST(m.CLIENTE_TELEFONO as INTEGER) as TELEFONO, CAST(m.CLIENTE_FECHA_NAC as DATETIME)
 FROM gd_esquema.Maestra m
 WHERE m.CLIENTE_DNI is not null order by m.CLIENTE_NOMBRE, m.CLIENTE_APELLIDO;
-
 PRINT 'Clientes migrados'
 
 INSERT INTO LA_EMPRESA.tipo_habitacion (codigo, descripcion)
 SELECT DISTINCT TIPO_HABITACION_CODIGO, TIPO_HABITACION_DESC 
 FROM gd_esquema.Maestra 
 WHERE TIPO_HABITACION_CODIGO is not null or TIPO_HABITACION_DESC is not null;
+PRINT 'Tipo de habitaciones migradas'
+
+-- MIGRACION HOTEL
+
+INSERT INTO LA_EMPRESA.hotel (id_empresa, calle, cantidad_estrellas, nro_calle)
+SELECT DISTINCT E.id, M.HOTEL_CALLE, M.HOTEL_CANTIDAD_ESTRELLAS, M.HOTEL_NRO_CALLE
+FROM LA_EMPRESA.empresa E 
+JOIN gd_esquema.Maestra M ON M.EMPRESA_RAZON_SOCIAL = E.razon_social
+WHERE M.HOTEL_CALLE IS NOT NULL ORDER BY E.id
+
+PRINT 'Hoteles migrados'
+
+INSERT INTO LA_EMPRESA.habitacion (id_hotel, id_tipo_habitacion, numero, piso, precio, frente, costo)
+SELECT DISTINCT H.id_hotel ,TA.codigo, HABITACION_NUMERO, HABITACION_PISO,HABITACION_PRECIO, CAST(HABITACION_FRENTE AS varchar) ,HABITACION_COSTO  
+FROM LA_EMPRESA.hotel H
+JOIN gd_esquema.Maestra M ON H.calle = M.HOTEL_CALLE
+JOIN LA_EMPRESA.tipo_habitacion TA ON M.TIPO_HABITACION_DESC = TA.descripcion 
+WHERE HABITACION_COSTO IS NOT NULL;
 
 PRINT 'Tipo de habitaciones migradas'
+
+SELECT RUTA_AEREA_CIU_DEST, RUTA_AEREA_CIU_ORIG FROM gd_esquema.Maestra WHERE RUTA_AEREA_CIU_DEST is not null order by RUTA_AEREA_CIU_DEST, RUTA_AEREA_CIU_ORIG;
