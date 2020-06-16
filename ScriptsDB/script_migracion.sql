@@ -123,9 +123,6 @@ AS
 	);
 	PRINT 'Creada tabla avion.'
 
-
-	--rename en DER "id_butaca" a "id"
-	--relacion de butaca a pasaje es de uno a muchos opcional (CORREGIR)
 	CREATE TABLE LA_EMPRESA.butaca (
 		id INT IDENTITY(0,1) PRIMARY KEY,
 		id_avion VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.avion(identificador),
@@ -145,7 +142,6 @@ AS
 	);
 	PRINT 'Creada tabla ruta_aerea.'
 
-	--corregir DER "fecha_saluda"
 	CREATE TABLE LA_EMPRESA.vuelo (
 		codigo INT NOT NULL PRIMARY KEY,
 		id_avion VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.avion(identificador),
@@ -163,7 +159,6 @@ AS
 		fecha_compra DATETIME
 	);
 	PRINT 'Creada tabla pasaje.'
-	--PRINT 'Creada tabla .'
 
 	CREATE TABLE LA_EMPRESA.pasaje_butaca (
 		id_pasaje INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.pasaje(codigo),
@@ -171,7 +166,6 @@ AS
 		PRIMARY KEY (id_pasaje, id_butaca)
 	);
 	PRINT 'Creada tabla pasaje_butaca'
-	--PRINT 'Creada tabla pasaje_butaca.'
 GO
 EXECUTE LA_EMPRESA.SP_MIGRATION_SCHEMA
 PRINT 'Creadas tablas del esquema'
@@ -190,7 +184,6 @@ GO
 PRINT 'Empresas migradas'
 GO
 
---Todas las sucursales
 INSERT INTO LA_EMPRESA.sucursal (dir, mail, telefono)
 select distinct SUCURSAL_DIR, SUCURSAL_MAIL, SUCURSAL_TELEFONO
 FROM gd_esquema.Maestra
@@ -211,19 +204,18 @@ GO
 PRINT 'Ciudades migradas'
 GO
 
-
---Todos los clientes
-
 INSERT INTO LA_EMPRESA.cliente (nombre, apellido, dni, email, telefono, fecha_nac)
 SELECT distinct m.CLIENTE_NOMBRE, m.CLIENTE_APELLIDO, CAST(m.CLIENTE_DNI as INTEGER) as DNI, m.CLIENTE_MAIL, CAST(m.CLIENTE_TELEFONO as INTEGER) as TELEFONO, CAST(m.CLIENTE_FECHA_NAC as DATETIME)
 FROM gd_esquema.Maestra m
 WHERE m.CLIENTE_DNI is not null order by m.CLIENTE_NOMBRE, m.CLIENTE_APELLIDO;
+
 PRINT 'Clientes migrados'
 
 INSERT INTO LA_EMPRESA.tipo_habitacion (codigo, descripcion)
 SELECT DISTINCT TIPO_HABITACION_CODIGO, TIPO_HABITACION_DESC 
 FROM gd_esquema.Maestra 
 WHERE TIPO_HABITACION_CODIGO is not null or TIPO_HABITACION_DESC is not null;
+
 PRINT 'Tipo de habitaciones migradas'
 
 
