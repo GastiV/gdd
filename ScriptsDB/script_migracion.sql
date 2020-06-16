@@ -8,7 +8,7 @@ CREATE PROCEDURE LA_EMPRESA.SP_MIGRATION_SCHEMA
 AS
 	
 	--CREACION DE TABLAS
-	PRINT 'Comienza la creación de tablas.'
+	PRINT 'Comienza la creacion de tablas.'
 
 	CREATE TABLE LA_EMPRESA.empresa (
 		id INTEGER IDENTITY(0,1) PRIMARY KEY,
@@ -240,3 +240,19 @@ INSERT INTO LA_EMPRESA.butaca (id_avion, numero, tipo)
 SELECT DISTINCT m.AVION_IDENTIFICADOR, m.BUTACA_NUMERO, m.BUTACA_TIPO
 FROM gd_esquema.Maestra as m
 where m.AVION_IDENTIFICADOR is not null AND m.BUTACA_NUMERO is not null
+
+
+INSERT INTO LA_EMPRESA.compra (numero, id_empresa, fecha)
+SELECT DISTINCT m.COMPRA_NUMERO, e.id, m.COMPRA_FECHA
+FROM gd_esquema.Maestra as m
+JOIN LA_EMPRESA.empresa as e ON m.EMPRESA_RAZON_SOCIAL = e.razon_social
+
+
+INSERT INTO LA_EMPRESA.servicio (codigo, id_compra)
+SELECT DISTINCT m.ESTADIA_CODIGO, m.COMPRA_NUMERO 
+FROM gd_esquema.Maestra as m
+WHERE m.ESTADIA_CODIGO IS NOT NULL
+UNION
+SELECT DISTINCT m.PASAJE_CODIGO, m.COMPRA_NUMERO
+FROM gd_esquema.Maestra as m
+WHERE m.PASAJE_CODIGO IS NOT NULL
