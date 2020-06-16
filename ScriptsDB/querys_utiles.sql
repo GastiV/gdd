@@ -1,4 +1,5 @@
 --Drop de todas las tablas, sps y schema
+DROP TABLE LA_EMPRESA.pasaje_butaca
 DROP TABLE LA_EMPRESA.pasaje
 DROP TABLE LA_EMPRESA.vuelo
 DROP TABLE LA_EMPRESA.ruta_aerea

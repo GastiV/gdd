@@ -156,14 +156,21 @@ AS
 
 	CREATE TABLE LA_EMPRESA.pasaje (
 		codigo INT NOT NULL PRIMARY KEY FOREIGN KEY REFERENCES LA_EMPRESA.servicio(codigo),
-		id_butaca INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.butaca(id),
 		id_vuelo INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.vuelo(codigo),
 		costo DECIMAL(18,2) NOT NULL,
 		precio DECIMAL(18,2) NOT NULL,
-		fecha_compra DATETIME NOT NULL
+		fecha_compra DATETIME
 	);
 	PRINT 'Creada tabla pasaje.'
 	--PRINT 'Creada tabla .'
+
+	CREATE TABLE LA_EMPRESA.pasaje_butaca (
+		id_pasaje INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.pasaje(codigo),
+		id_butaca INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.butaca(id),
+		PRIMARY KEY (id_pasaje, id_butaca)
+	);
+	PRINT 'Creada tabla pasaje_butaca'
+	--PRINT 'Creada tabla pasaje_butaca.'
 GO
 EXECUTE LA_EMPRESA.SP_MIGRATION_SCHEMA
 PRINT 'Creadas tablas del esquema'
@@ -285,6 +292,29 @@ FROM gd_esquema.Maestra as m
 WHERE m.PASAJE_CODIGO IS NOT NULL
 
 PRINT 'Servicios migrados.'
+
+INSERT INTO LA_EMPRESA.pasaje (codigo, id_vuelo, costo, precio, fecha_compra)
+SELECT DISTINCT m.PASAJE_CODIGO, m.VUELO_CODIGO, m.PASAJE_COSTO, m.PASAJE_PRECIO, m.PASAJE_FECHA_COMPRA
+FROM gd_esquema.Maestra as m
+WHERE m.PASAJE_CODIGO IS NOT NULL
+
+PRINT 'Pasajes migrados.'
+
+INSERT INTO LA_EMPRESA.pasaje_butaca (id_pasaje, id_butaca)
+SELECT DISTINCT m.PASAJE_CODIGO, b.id
+FROM gd_esquema.Maestra as m
+JOIN LA_EMPRESA.butaca as b ON (m.AVION_IDENTIFICADOR = b.id_avion AND m.BUTACA_NUMERO = b.numero)
+
+PRINT 'Pasajes x butacas migrados.'
+
+INSERT INTO LA_EMPRESA.estadia (codigo, id_habitacion, fecha_ini, cantidad_noches)
+SELECT DISTINCT m.ESTADIA_CODIGO, ha.id_habitacion , m.ESTADIA_FECHA_INI, m.ESTADIA_CANTIDAD_NOCHES
+FROM LA_EMPRESA.empresa as e
+JOIN LA_EMPRESA.hotel as ho ON e.id = ho.id_empresa
+JOIN LA_EMPRESA.habitacion as ha ON ho.id_hotel = ha.id_hotel
+JOIN gd_esquema.Maestra as m ON (m.EMPRESA_RAZON_SOCIAL = e.razon_social AND m.HOTEL_CALLE = ho.calle AND m.HABITACION_NUMERO = ha.numero AND m.HABITACION_PISO = ha.piso)
+
+PRINT 'Estadias migradas.'
 
 INSERT INTO LA_EMPRESA.factura (id_servicio, id_cliente, id_sucursal, nro)
 SELECT DISTINCT M.PASAJE_CODIGO, CLI.id, SU.id, M.FACTURA_NRO FROM LA_EMPRESA.cliente CLI 
