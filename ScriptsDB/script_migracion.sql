@@ -12,37 +12,46 @@ AS
 
 	CREATE TABLE LA_EMPRESA.empresa (
 		id INTEGER IDENTITY(0,1) PRIMARY KEY,
-		razon_social VARCHAR(49) NOT NULL
+		razon_social VARCHAR(100) NOT NULL
 	);
 	PRINT 'Creada tabla empresa.'
 
 	CREATE TABLE LA_EMPRESA.sucursal(
 		id INTEGER IDENTITY(1,1) PRIMARY KEY,
-		dir VARCHAR(31) NOT NULL,
-		mail VARCHAR(22) NOT NULL,
+		dir VARCHAR(50) NOT NULL,
+		mail VARCHAR(50) NOT NULL,
 		telefono INTEGER NOT NULL
 	);
 	PRINT 'Creada tabla sucursal.'
 
 	CREATE TABLE LA_EMPRESA.ciudad (
 		codigo INT IDENTITY(0,1) PRIMARY KEY, --Por alguna razon arranca en 0??
-		nombre VARCHAR(17) NOT NULL
+		nombre VARCHAR(50) NOT NULL
 	);
 	PRINT 'Creada tabla ciudad.'
 
+	--TODO: Actualizar id cliente en el DER
+	--Dos clientes con el mismo DNI
+	--https://groups.google.com/forum/#!topic/gestiondedatos/L9DFvV4DgmI thread sobre el asunto
+	--SELECT * FROM gd_esquema.Maestra WHERE CLIENTE_DNI = '1353465' 
+	--todos tienen el mail repetido
+
+
+
 	CREATE TABLE LA_EMPRESA.cliente (
-		dni INTEGER PRIMARY KEY ,
-		apellido VARCHAR(10) NOT NULL,
-		nombre VARCHAR(23) NOT NULL,
+		id INTEGER IDENTITY(0,1) PRIMARY KEY ,
+		dni INTEGER NOT NULL,
+		apellido VARCHAR(50) NOT NULL,
+		nombre VARCHAR(50) NOT NULL,
 		fecha_nac DATETIME NOT NULL,
-		email VARCHAR(33) NOT NULL,
+		email VARCHAR(50) NOT NULL,
 		telefono INTEGER NOT NULL
 	);
 	PRINT 'Creada tabla cliente.'
 
 	CREATE TABLE LA_EMPRESA.tipo_habitacion (
 		codigo INT PRIMARY KEY,
-		descripcion VARCHAR(14) NOT NULL
+		descripcion VARCHAR(50) NOT NULL
 	);
 	PRINT 'Creada tabla tipo_habitacion.'
 
@@ -109,7 +118,7 @@ AS
 	CREATE TABLE LA_EMPRESA.avion (
 		identificador INT NOT NULL PRIMARY KEY,
 		id_empresa INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.empresa(id),
-		modelo VARCHAR(15)
+		modelo VARCHAR(50)
 	);
 	PRINT 'Creada tabla avion.'
 
@@ -120,7 +129,7 @@ AS
 		id INT IDENTITY(0,1) PRIMARY KEY, 
 		id_avion INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.avion(identificador),
 		numero INT NOT NULL,
-		tipo VARCHAR(17)
+		tipo VARCHAR(50)
 	);
 	PRINT 'Creada tabla butaca.'
 
@@ -192,19 +201,17 @@ GO
 
 
 --Todos los clientes
-/*
+
 INSERT INTO LA_EMPRESA.cliente (nombre, apellido, dni, email, telefono, fecha_nac)
 SELECT distinct m.CLIENTE_NOMBRE, m.CLIENTE_APELLIDO, CAST(m.CLIENTE_DNI as INTEGER) as DNI, m.CLIENTE_MAIL, CAST(m.CLIENTE_TELEFONO as INTEGER) as TELEFONO, CAST(m.CLIENTE_FECHA_NAC as DATETIME)
 FROM gd_esquema.Maestra m
 WHERE m.CLIENTE_DNI is not null order by m.CLIENTE_NOMBRE, m.CLIENTE_APELLIDO;
-*/
 
---Dos clientes con el mismo DNI
---https://groups.google.com/forum/#!topic/gestiondedatos/L9DFvV4DgmI thread sobre el asunto
---SELECT * FROM gd_esquema.Maestra WHERE CLIENTE_DNI = '1353465' 
---todos tienen el mail repetido
+PRINT 'Clientes migrados'
 
 INSERT INTO LA_EMPRESA.tipo_habitacion (codigo, descripcion)
 SELECT DISTINCT TIPO_HABITACION_CODIGO, TIPO_HABITACION_DESC 
 FROM gd_esquema.Maestra 
 WHERE TIPO_HABITACION_CODIGO is not null or TIPO_HABITACION_DESC is not null;
+
+PRINT 'Tipo de habitaciones migradas'
