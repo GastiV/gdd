@@ -22,3 +22,17 @@ DROP SCHEMA LA_EMPRESA
 
 --Get column length
 SELECT MAX(LEN(BUTACA_TIPO)) FROM gd_esquema.Maestra;
+
+
+--DROP tablas de BI
+
+DROP TABLE LA_EMPRESA.fact_table_pasaje;
+DROP TABLE LA_EMPRESA.fact_table_estadia;
+DROP TABLE LA_EMPRESA.bi_tipo_pasaje;
+DROP TABLE LA_EMPRESA.bi_ruta_aerea;
+DROP TABLE LA_EMPRESA.bi_avion;
+DROP TABLE LA_EMPRESA.bi_tipo_habitacion;
+DROP TABLE LA_EMPRESA.bi_ciudad;
+DROP TABLE LA_EMPRESA.bi_proveedor;
+DROP TABLE LA_EMPRESA.bi_cliente;
+DROP TABLE LA_EMPRESA.bi_anio_y_mes;
