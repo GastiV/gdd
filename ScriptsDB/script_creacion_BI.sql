@@ -28,24 +28,23 @@ CREATE TABLE LA_EMPRESA.bi_ciudad (
     codigo INT PRIMARY KEY,
     nombre VARCHAR(50) NOT NULL
 );
-PRINT 'Creada tabla ciudad BI.'
+PRINT 'Creada tabla ciudad BI.';
 
 CREATE TABLE LA_EMPRESA.bi_tipo_habitacion (
     codigo INT PRIMARY KEY,
     descripcion VARCHAR(50) NOT NULL
 );
-PRINT 'Creada tabla bi_tipo_habitacion.'
+PRINT 'Creada tabla bi_tipo_habitacion.';
 
 CREATE TABLE LA_EMPRESA.bi_avion (
     identificador VARCHAR(50) NOT NULL PRIMARY KEY,
     modelo VARCHAR(50)
 );
-PRINT 'Creada tabla bi_avion.'
+PRINT 'Creada tabla bi_avion.';
 
 CREATE TABLE LA_EMPRESA.bi_ruta_aerea (
     codigo INT PRIMARY KEY
 );
-
 PRINT 'Creada tabla bi_ruta_aerea.'
 
 CREATE TABLE LA_EMPRESA.bi_tipo_butaca (
@@ -67,9 +66,9 @@ CREATE TABLE LA_EMPRESA.fact_table_estadia(
     FOREIGN KEY (id_anio_y_mes) REFERENCES LA_EMPRESA.bi_anio_y_mes (id),
     FOREIGN KEY (id_cliente) REFERENCES LA_EMPRESA.bi_cliente (id),
     FOREIGN KEY (id_empresa) REFERENCES LA_EMPRESA.bi_proveedor (id),
-    FOREIGN KEY (id_tipo_habitacion) REFERENCES LA_EMPRESA.bi_tipo_habitacion (codigo)
+    FOREIGN KEY (id_tipo_habitacion) REFERENCES LA_EMPRESA.bi_tipo_habitacion (codigo),
+    PRIMARY KEY (id_anio_y_mes, id_cliente, id_empresa, id_tipo_habitacion)
 );
-
 PRINT 'Creada Fact Table de Estadias';
 
 PRINT 'Comienzo carga del modelo BI';
@@ -92,9 +91,7 @@ SELECT id, razon_social FROM LA_EMPRESA.empresa;
 PRINT 'Migrados proveedores al modelo BI';
 
 INSERT INTO LA_EMPRESA.bi_anio_y_mes (anio, mes)
-SELECT DISTINCT YEAR(f.fecha), MONTH(f.fecha) FROM LA_EMPRESA.factura f JOIN LA_EMPRESA.pasaje p ON (p.codigo = f.id_servicio)
-UNION
-SELECT DISTINCT YEAR(f.fecha), MONTH(f.fecha) FROM LA_EMPRESA.factura f JOIN LA_EMPRESA.estadia e ON (e.codigo = f.id_servicio)
+SELECT DISTINCT YEAR(f.fecha), MONTH(f.fecha) FROM LA_EMPRESA.factura
 
 PRINT 'Migradas fechas con actividad al modelo BI';
 
@@ -123,27 +120,33 @@ FROM LA_EMPRESA.butaca
 PRINT 'Migradas tipos de butacas al modelo BI';
 
 INSERT INTO LA_EMPRESA.fact_table_estadia (id_anio_y_mes, id_cliente, id_empresa, id_tipo_habitacion,cantidad_de_camas_vendidas, precio_promedio_compra, precio_promedio_venta, cantidad_de_habitaciones_vendidas, ganancias_realizadas)
-SELECT aym.id, cli.id, emp.id, th.codigo,
-SUM(
-    CASE
-        WHEN th.codigo = 1001 THEN 1
-        WHEN th.codigo = 1002 THEN 2
-        WHEN th.codigo = 1003 THEN 3
-        WHEN th.codigo = 1004 THEN 4
-        WHEN th.codigo = 1005 THEN 1
-    END
-) 'Camas Vendidas', (Sum(h.costo) / COUNT(*)) 'Promedio de Compra',
-   (Sum(h.precio) / COUNT(*)) 'Promedio de Venta', COUNT(*) 'Habitaciones Vendidas',
-   (SUM(h.precio) - SUM(h.costo)) 'Ganancias Realizadas'
-FROM LA_EMPRESA.factura f JOIN LA_EMPRESA.estadia e
-ON (e.codigo = f.id_servicio) JOIN LA_EMPRESA.habitacion h
-ON (h.id_habitacion = e.id_habitacion) JOIN LA_EMPRESA.bi_anio_y_mes aym
-ON(aym.anio = YEAR(f.fecha) AND aym.mes = MONTH(f.fecha)) JOIN LA_EMPRESA.tipo_habitacion th
-ON (th.codigo = h.id_tipo_habitacion) JOIN LA_EMPRESA.servicio s
-ON (s.codigo = f.id_servicio) JOIN LA_EMPRESA.compra co
-ON (co.numero = s.id_compra) JOIN LA_EMPRESA.empresa emp
-ON(emp.id = co.id_empresa) JOIN LA_EMPRESA.cliente cli
-ON (cli.id = f.id_cliente)
+SELECT
+    aym.id,
+    cli.id,
+    emp.id,
+    th.codigo,
+    SUM(
+        CASE
+            WHEN th.codigo = 1001 THEN 1
+            WHEN th.codigo = 1002 THEN 2
+            WHEN th.codigo = 1003 THEN 3
+            WHEN th.codigo = 1004 THEN 4
+            WHEN th.codigo = 1005 THEN 1
+        END
+    ) 'Camas Vendidas',
+    AVG(h.costo) 'Promedio de Compra',
+    AVG(h.precio) 'Promedio de Venta',
+    COUNT(*) 'Habitaciones Vendidas',
+    (SUM(h.precio) - SUM(h.costo)) 'Ganancias Realizadas'
+FROM LA_EMPRESA.factura f
+JOIN LA_EMPRESA.estadia e ON (e.codigo = f.id_servicio)
+JOIN LA_EMPRESA.habitacion h ON (h.id_habitacion = e.id_habitacion)
+JOIN LA_EMPRESA.bi_anio_y_mes aym ON (aym.anio = YEAR(f.fecha) AND aym.mes = MONTH(f.fecha))
+JOIN LA_EMPRESA.tipo_habitacion th ON (th.codigo = h.id_tipo_habitacion)
+JOIN LA_EMPRESA.servicio s ON (s.codigo = f.id_servicio)
+JOIN LA_EMPRESA.compra co ON (co.numero = s.id_compra)
+JOIN LA_EMPRESA.empresa emp ON(emp.id = co.id_empresa)
+JOIN LA_EMPRESA.cliente cli ON (cli.id = f.id_cliente)
 GROUP BY aym.id, cli.id, emp.id, th.codigo;
 
 PRINT 'Llenado de Fact Table Estadia completo';
