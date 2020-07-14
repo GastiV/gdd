@@ -47,13 +47,13 @@ CREATE TABLE LA_EMPRESA.bi_ruta_aerea (
 );
 PRINT 'Creada tabla bi_ruta_aerea.'
 
-CREATE TABLE LA_EMPRESA.bi_tipo_butaca (
+CREATE TABLE LA_EMPRESA.bi_tipo_pasaje (
     id INT IDENTITY(0,1) PRIMARY KEY,
     descripcion VARCHAR(50)
 );
-PRINT 'Creada bi_tabla_butaca.'
+PRINT 'Creada bi_tipo_pasaje.'
 
-CREATE TABLE LA_EMPRESA.fact_table_estadia(
+CREATE TABLE LA_EMPRESA.fact_table_estadia (
     id_anio_y_mes INT NOT NULL,
     id_cliente INT NOT NULL,
     id_empresa INT NOT NULL,
@@ -70,6 +70,22 @@ CREATE TABLE LA_EMPRESA.fact_table_estadia(
     PRIMARY KEY (id_anio_y_mes, id_cliente, id_empresa, id_tipo_habitacion)
 );
 PRINT 'Creada Fact Table de Estadias';
+
+CREATE TABLE LA_EMPRESA.fact_table_pasaje (
+    id_anio_y_mes INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.bi_anio_y_mes (id),
+    id_cliente INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.bi_cliente (id),
+    id_empresa INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.bi_proveedor (id),
+    id_ciudad_orig INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.bi_ciudad (codigo),
+    id_ciudad_dest INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.bi_ciudad (codigo),
+    id_avion VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.bi_avion (identificador),
+    codigo_ruta_aerea INT NOT NULL FOREIGN KEY REFERENCES LA_EMPRESA.bi_ruta_aerea (codigo),
+    precio_promedio_compra INT NOT NULL,
+    precio_promedio_venta INT NOT NULL,
+    cantidad_de_pasajes_aereos_vendidos INT NOT NULL,
+    ganancias_realizadas INT NOT NULL,
+    PRIMARY KEY (id_anio_y_mes, id_cliente, id_empresa, id_ciudad_orig, id_ciudad_dest, id_avion, codigo_ruta_aerea)
+);
+PRINT 'Creada Fact Table de Pasajes';
 
 PRINT 'Comienzo carga del modelo BI';
 
@@ -91,7 +107,7 @@ SELECT id, razon_social FROM LA_EMPRESA.empresa;
 PRINT 'Migrados proveedores al modelo BI';
 
 INSERT INTO LA_EMPRESA.bi_anio_y_mes (anio, mes)
-SELECT DISTINCT YEAR(f.fecha), MONTH(f.fecha) FROM LA_EMPRESA.factura
+SELECT DISTINCT YEAR(f.fecha), MONTH(f.fecha) FROM LA_EMPRESA.factura f;
 
 PRINT 'Migradas fechas con actividad al modelo BI';
 
@@ -113,25 +129,25 @@ FROM LA_EMPRESA.ruta_aerea
 
 PRINT 'Migradas rutas aereas al modelo BI';
 
-INSERT INTO LA_EMPRESA.bi_tipo_butaca (descripcion)
+INSERT INTO LA_EMPRESA.bi_tipo_pasaje (descripcion)
 SELECT DISTINCT tipo
 FROM LA_EMPRESA.butaca
 
-PRINT 'Migradas tipos de butacas al modelo BI';
+PRINT 'Migradas tipos de pasaje al modelo BI';
 
 INSERT INTO LA_EMPRESA.fact_table_estadia (id_anio_y_mes, id_cliente, id_empresa, id_tipo_habitacion,cantidad_de_camas_vendidas, precio_promedio_compra, precio_promedio_venta, cantidad_de_habitaciones_vendidas, ganancias_realizadas)
 SELECT
     aym.id,
-    cli.id,
-    emp.id,
-    th.codigo,
+    f.id_cliente,
+    co.id_empresa,
+    h.id_tipo_habitacion,
     SUM(
         CASE
-            WHEN th.codigo = 1001 THEN 1
-            WHEN th.codigo = 1002 THEN 2
-            WHEN th.codigo = 1003 THEN 3
-            WHEN th.codigo = 1004 THEN 4
-            WHEN th.codigo = 1005 THEN 1
+            WHEN h.id_tipo_habitacion = 1001 THEN 1
+            WHEN h.id_tipo_habitacion = 1002 THEN 2
+            WHEN h.id_tipo_habitacion = 1003 THEN 3
+            WHEN h.id_tipo_habitacion = 1004 THEN 4
+            WHEN h.id_tipo_habitacion = 1005 THEN 1
         END
     ) 'Camas Vendidas',
     AVG(h.costo) 'Promedio de Compra',
@@ -142,11 +158,56 @@ FROM LA_EMPRESA.factura f
 JOIN LA_EMPRESA.estadia e ON (e.codigo = f.id_servicio)
 JOIN LA_EMPRESA.habitacion h ON (h.id_habitacion = e.id_habitacion)
 JOIN LA_EMPRESA.bi_anio_y_mes aym ON (aym.anio = YEAR(f.fecha) AND aym.mes = MONTH(f.fecha))
-JOIN LA_EMPRESA.tipo_habitacion th ON (th.codigo = h.id_tipo_habitacion)
 JOIN LA_EMPRESA.servicio s ON (s.codigo = f.id_servicio)
 JOIN LA_EMPRESA.compra co ON (co.numero = s.id_compra)
-JOIN LA_EMPRESA.empresa emp ON(emp.id = co.id_empresa)
-JOIN LA_EMPRESA.cliente cli ON (cli.id = f.id_cliente)
-GROUP BY aym.id, cli.id, emp.id, th.codigo;
+GROUP BY aym.id, f.id_cliente, co.id_empresa, h.id_tipo_habitacion;
 
 PRINT 'Llenado de Fact Table Estadia completo';
+
+INSERT INTO LA_EMPRESA.fact_table_pasaje (
+	id_anio_y_mes,
+	id_cliente,
+	id_empresa,
+	id_ciudad_orig,
+	id_ciudad_dest,
+	id_avion,
+	codigo_ruta_aerea,
+	precio_promedio_compra,
+	precio_promedio_venta,
+	cantidad_de_pasajes_aereos_vendidos,
+	ganancias_realizadas)
+SELECT
+	aym.id,
+	f.id_cliente,
+	co.id_empresa,
+	ra.id_ciudad_orig,
+	ra.id_ciudad_dest,
+	v.id_avion,
+	ra.codigo,
+	AVG(p.costo) 'precio_promedio_compra',
+	AVG(p.precio) 'precio_promedio_venta',
+	COUNT(*) 'cantidad_de_pasajes_aereos_vendidos',
+	SUM(p.precio - p.costo) 'ganancias_realizadas'
+FROM LA_EMPRESA.pasaje p
+JOIN LA_EMPRESA.factura f ON f.id_servicio = p.codigo
+JOIN LA_EMPRESA.bi_anio_y_mes aym ON (aym.anio = YEAR(f.fecha) AND aym.mes = MONTH(f.fecha))
+JOIN LA_EMPRESA.servicio s ON (s.codigo = f.id_servicio)
+JOIN LA_EMPRESA.compra co ON (co.numero = s.id_compra)
+JOIN LA_EMPRESA.vuelo v ON v.codigo = p.id_vuelo
+JOIN LA_EMPRESA.ruta_aerea ra ON v.id_ruta_aerea = ra.id
+GROUP BY aym.id, f.id_cliente, co.id_empresa, ra.id_ciudad_orig, ra.id_ciudad_dest, v.id_avion, ra.codigo;
+
+PRINT 'Llenado de Fact Table Pasaje completo';
+
+
+
+
+
+
+
+
+
+
+
+
+
